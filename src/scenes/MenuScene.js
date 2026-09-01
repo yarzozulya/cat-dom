@@ -4,7 +4,7 @@
 
 import Phaser from 'phaser';
 import { FIELD } from '../config/level.js';
-import { load } from '../core/save.js';
+import { load, resetAll } from '../core/save.js';
 import { tasksForToday } from '../config/tasks.js';
 import { makeTextures } from '../core/greybox.js';
 
@@ -57,11 +57,53 @@ export default class MenuScene extends Phaser.Scene {
     });
 
     const allDone = tasks.every(t => saved.tasksDoneToday.includes(t.id));
-    this.add.text(FIELD.w / 2, FIELD.h - 90,
+    this.add.text(FIELD.w / 2, FIELD.h - 140,
       allDone ? 'На сегодня всё. Кот доволен. Наверное.'
               : 'Заходы не ограничены. Награда за задание — один раз.', {
       fontFamily: 'sans-serif', fontSize: '15px', color: '#9A8F87',
       align: 'center', wordWrap: { width: FIELD.w - 80 }
     }).setOrigin(0.5);
+
+    this.buildResetButton();
+  }
+
+  // ------------------------------------------------------------
+  //  ВРЕМЕННАЯ КНОПКА СБРОСА  —  только на время тестов
+  // ------------------------------------------------------------
+  //  Задания за день выполняются один раз, и без сброса пришлось бы
+  //  ждать следующего дня, чтобы пройти их заново. Кнопка обнуляет
+  //  рыбок, выполненные задания и собранные заначки.
+  //  Первое нажатие спрашивает подтверждение, второе — сбрасывает.
+  //  Перед публикацией удаляем этот метод и его вызов.
+  buildResetButton() {
+    const y = FIELD.h - 66;
+    const box = this.add.rectangle(FIELD.w / 2, y, 260, 40, 0x332D2A)
+      .setStrokeStyle(1, 0x6E635C, 0.9)
+      .setInteractive({ useHandCursor: true });
+    const label = this.add.text(FIELD.w / 2, y, '⟲  сбросить прогресс', {
+      fontFamily: 'sans-serif', fontSize: '14px', color: '#9A8F87'
+    }).setOrigin(0.5);
+
+    this.add.text(FIELD.w / 2, FIELD.h - 30, 'кнопка для тестов, в релизе её не будет', {
+      fontFamily: 'sans-serif', fontSize: '11px', color: '#6E635C'
+    }).setOrigin(0.5);
+
+    let armed = false;
+    box.on('pointerup', () => {
+      if (!armed) {
+        armed = true;
+        label.setText('точно? нажми ещё раз').setColor('#F0B44E');
+        box.setStrokeStyle(1, 0xF0B44E, 1);
+        this.time.delayedCall(2500, () => {
+          if (!armed) return;
+          armed = false;
+          label.setText('⟲  сбросить прогресс').setColor('#9A8F87');
+          box.setStrokeStyle(1, 0x6E635C, 0.9);
+        });
+        return;
+      }
+      resetAll();
+      this.scene.restart();
+    });
   }
 }

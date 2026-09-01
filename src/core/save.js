@@ -52,6 +52,18 @@ export function addFish(n) {
   return s.fish;
 }
 
+// Полный сброс. Нужен, пока мы тестируем: задания за день выполняются
+// один раз, и без сброса пришлось бы ждать завтра.
+// Перед релизом эту функцию и кнопку в меню убираем.
+export function resetAll() {
+  try {
+    localStorage.removeItem(KEY);
+  } catch (e) {
+    // приватный режим — сбрасывать нечего
+  }
+  return load();
+}
+
 export function markTaskDone(taskId) {
   const s = load();
   if (!s.tasksDoneToday.includes(taskId)) s.tasksDoneToday.push(taskId);

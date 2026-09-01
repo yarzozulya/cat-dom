@@ -67,6 +67,59 @@ const DRAW = {
     g.fillCircle(w * 0.86, h * 0.38, 2.4);
   },
 
+  // Кот, висящий на люстре: одна лапа вверх, голова вверх, тело вниз.
+  cathang(g, a) {
+    const w = a.w, h = a.h;
+    g.fillStyle(a.color, 1);
+    // поднятая лапа — та, которой держится
+    g.fillRect(w * 0.42, 0, w * 0.16, h * 0.26);
+    g.fillCircle(w * 0.50, h * 0.03, w * 0.12);
+    // голова
+    g.fillCircle(w * 0.50, h * 0.33, w * 0.30);
+    // уши
+    g.fillTriangle(w * 0.26, h * 0.30, w * 0.30, h * 0.15, w * 0.45, h * 0.23);
+    g.fillTriangle(w * 0.74, h * 0.30, w * 0.70, h * 0.15, w * 0.55, h * 0.23);
+    // тело свисает вниз
+    g.fillEllipse(w * 0.50, h * 0.68, w * 0.60, h * 0.50);
+    // задние лапы
+    g.fillRect(w * 0.34, h * 0.88, w * 0.12, h * 0.12);
+    g.fillRect(w * 0.54, h * 0.88, w * 0.12, h * 0.12);
+    // хвост в сторону
+    g.lineStyle(4, a.color, 1);
+    g.beginPath(); g.moveTo(w * 0.68, h * 0.80); g.lineTo(w * 0.98, h * 0.94); g.strokePath();
+    // глаза — смотрит вниз, оценивает высоту
+    g.fillStyle(0x241C29, 1);
+    g.fillCircle(w * 0.40, h * 0.36, 2.2);
+    g.fillCircle(w * 0.60, h * 0.36, 2.2);
+  },
+
+  // Люстра: ножка, абажур-трапеция, три лампочки.
+  lyustra(g, a) {
+    const w = a.w, h = a.h;
+    g.fillStyle(0x7A6C84, 1);
+    g.fillRect(w * 0.46, 0, w * 0.08, h * 0.24);
+    g.fillStyle(a.color, 1);
+    g.fillPoints([
+      { x: w * 0.16, y: h * 0.62 }, { x: w * 0.84, y: h * 0.62 },
+      { x: w * 0.66, y: h * 0.20 }, { x: w * 0.34, y: h * 0.20 }
+    ], true);
+    g.fillStyle(0xFFF1C2, 1);
+    g.fillCircle(w * 0.26, h * 0.74, h * 0.15);
+    g.fillCircle(w * 0.50, h * 0.80, h * 0.15);
+    g.fillCircle(w * 0.74, h * 0.74, h * 0.15);
+  },
+
+  // Ковёр: полотно с каймой, чтобы читалось как ковёр, а не как трава.
+  kover(g, a) {
+    const w = a.w, h = a.h;
+    g.fillStyle(a.color, 1);
+    g.fillRect(0, 0, w, h);
+    g.lineStyle(3, 0xE8DFC8, 0.45);
+    g.strokeRect(10, 8, w - 20, h - 16);
+    g.lineStyle(1, 0xE8DFC8, 0.22);
+    g.strokeRect(20, 16, w - 40, h - 32);
+  },
+
   // Хозяин: лежит под одеялом, голова слева, рука согнута.
   human(g, a) {
     const w = a.w, h = a.h;

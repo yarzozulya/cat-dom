@@ -12,7 +12,7 @@ import MenuScene from './scenes/MenuScene.js';
 import LevelScene from './scenes/LevelScene.js';
 import ResultScene from './scenes/ResultScene.js';
 
-new Phaser.Game({
+const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'app',
   backgroundColor: '#56504B',
@@ -28,3 +28,7 @@ new Phaser.Game({
   },
   scene: [MenuScene, LevelScene, ResultScene]
 });
+
+// Доступ к игре из консоли браузера — удобно на время тестов.
+// Например: __game.scene.getScene('Level').state
+window.__game = game;

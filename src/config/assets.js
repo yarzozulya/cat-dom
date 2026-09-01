@@ -11,7 +11,7 @@
 //    file   — имя картинки в папке public/art/
 //    w, h   — размер в игровых пикселях (умножить на 2 для файла)
 //    color  — цвет заглушки, пока картинки нет
-//    shape  — форма заглушки: rect | cat | human | fish | table | lamp
+//    shape  — форма заглушки
 //    label  — подпись на заглушке
 //
 //  Размеры заданы относительно кота: кот 56 × 38.
@@ -22,7 +22,10 @@ export const ART_DIR = 'art/';
 
 export const ASSETS = {
   // ---- персонаж ----
-  cat:      { file: 'cat.png',      w: 56,  h: 38,  color: 0xE8A33D, shape: 'cat',   label: '' },
+  // Две позы. Обычная — кот стоит и прыгает. Вторая — висит на люстре
+  // на одной лапе: тело вниз, голова вверх.
+  cat:      { file: 'cat.png',      w: 56,  h: 38,  color: 0xE8A33D, shape: 'cat',    label: '' },
+  cat_hang: { file: 'cat-hang.png', w: 34,  h: 54,  color: 0xE8A33D, shape: 'cathang',label: '' },
 
   // ---- поверхности, на которые кот приземляется ----
   tumba:    { file: 'tumba.png',    w: 70,  h: 56,  color: 0x8B5E3C, shape: 'rect',  label: 'Тумбочка' },
@@ -35,13 +38,16 @@ export const ASSETS = {
   // ---- декор и опасности ----
   okno:     { file: 'okno.png',     w: 34,  h: 150, color: 0x3C6E8F, shape: 'rect',  label: 'Окно' },
   hozyain:  { file: 'hozyain.png',  w: 200, h: 48,  color: 0xD8A48F, shape: 'human', label: '' },
+  // Люстра: маленькая нарочно — она висит посреди экрана и не должна
+  // загораживать комнату. Кот цепляется за неё лапой.
+  lyustra:  { file: 'lyustra.png',  w: 64,  h: 40,  color: 0xD9C27A, shape: 'lyustra',label: 'Люстра' },
 
   // ---- прочее ----
   ryba:     { file: 'ryba.png',     w: 30,  h: 22,  color: 0x5FA9BB, shape: 'fish',  label: '' },
   podushka: { file: 'podushka.png', w: 46,  h: 30,  color: 0xE7E2EC, shape: 'pillow',label: '' },
 
-  // Пол. Кот может прыгать по нему сколько угодно — это не провал.
-  pol:      { file: 'pol.png',      w: 540, h: 78,  color: 0x2E5233, shape: 'rect',  label: '' }
+  // Ковёр. Кот может прыгать по нему сколько угодно — это не провал.
+  pol:      { file: 'kover.png',    w: 540, h: 110, color: 0x2E5233, shape: 'kover', label: 'Ковёр' }
 };
 
 // Ключи, для которых картинка уже нарисована и лежит в public/art/.
