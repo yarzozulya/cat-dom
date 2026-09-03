@@ -38,9 +38,18 @@ export function buildLayout(FURNITURE, STASH_POOL) {
   const shkaf = by('shkaf');
   if (shkaf) shkaf.x = clamp(shkaf.x + rnd(-60, 60), 100, FIELD.w - 100);
 
+  // аквариум тоже немного гуляет по ковру, но остаётся в досягаемости
+  const akva = by('akvarium');
+  if (akva) akva.x = clamp(akva.x + rnd(-70, 70), 100, FIELD.w - 100);
+
   // --- 1. зеркало всей комнаты ---
   const mirrored = Math.random() < 0.5;
   if (mirrored) items.forEach(i => { i.x = FIELD.w - i.x; });
+
+  // Аквариум не должен оказаться на месте старта кота (x ≈ 100):
+  // иначе кот стоит внутри него ещё до первого прыжка.
+  const akvaFinal = by('akvarium');
+  if (akvaFinal) akvaFinal.x = clamp(akvaFinal.x, 235, FIELD.w - 110);
 
   // --- 4. три заначки из пула ---
   const pool = [...STASH_POOL];

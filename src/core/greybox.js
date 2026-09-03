@@ -28,8 +28,73 @@ export function makeTextures(scene) {
   });
 }
 
+// Где у аквариума поверхность воды — доля от его высоты, считая сверху.
+// Из этой точки бьют брызги и вылетают рыбки.
+export const WATER_LINE = 0.18;
+
 // ---------- рисовалки силуэтов ----------
 const DRAW = {
+
+  // Аквариум: деревянная подставка, стекло, вода, грунт, водоросли,
+  // замок и одна рыжая рыбка. Светлая линия — поверхность воды,
+  // по ней игрок понимает, куда именно прыгать.
+  akva(g, a) {
+    const w = a.w, h = a.h;
+    const standTop = h * 0.72;          // где кончается стекло и начинается тумба
+    const water    = h * WATER_LINE;    // уровень воды
+
+    // подставка
+    g.fillStyle(0x4E3722, 1);
+    g.fillRect(w * 0.05, standTop, w * 0.90, h - standTop);
+    g.fillStyle(0x3A2919, 1);
+    g.fillRect(w * 0.05, standTop, w * 0.90, 3);
+
+    // воздух над водой внутри стекла
+    g.fillStyle(0x24404E, 1);
+    g.fillRect(0, 0, w, standTop);
+
+    // вода
+    g.fillStyle(a.color, 1);
+    g.fillRect(3, water, w - 6, standTop - water - 3);
+
+    // грунт
+    g.fillStyle(0x6B5B4A, 1);
+    g.fillRect(3, standTop - h * 0.12, w - 6, h * 0.12 - 3);
+
+    // водоросли
+    g.fillStyle(0x4A8B3A, 1);
+    g.fillRect(w * 0.13, h * 0.32, 4, standTop - h * 0.44);
+    g.fillRect(w * 0.20, h * 0.44, 4, standTop - h * 0.56);
+    g.fillRect(w * 0.83, h * 0.35, 4, standTop - h * 0.47);
+
+    // замок
+    g.fillStyle(0x9C8F7A, 1);
+    g.fillRect(w * 0.55, h * 0.44, w * 0.14, standTop - h * 0.44 - 3);
+    g.fillRect(w * 0.53, h * 0.39, w * 0.05, h * 0.10);
+    g.fillRect(w * 0.68, h * 0.39, w * 0.05, h * 0.10);
+
+    // рыбка внутри
+    g.fillStyle(0xE8722C, 1);
+    g.fillEllipse(w * 0.36, h * 0.44, 14, 9);
+    g.fillTriangle(
+      w * 0.36 - 5, h * 0.44,
+      w * 0.36 - 13, h * 0.38,
+      w * 0.36 - 13, h * 0.50
+    );
+
+    // поверхность воды
+    g.lineStyle(2, 0xBFEFF7, 0.8);
+    g.beginPath(); g.moveTo(3, water); g.lineTo(w - 3, water); g.strokePath();
+
+    // рама стекла и блик
+    g.lineStyle(2, 0x2E3E46, 0.9);
+    g.strokeRect(1, 1, w - 2, standTop - 1);
+    g.lineStyle(2, 0xBFEFF7, 0.3);
+    g.beginPath();
+    g.moveTo(w * 0.09, water + 6);
+    g.lineTo(w * 0.09, standTop - 9);
+    g.strokePath();
+  },
 
   rect(g, a) {
     g.fillStyle(a.color, 1);

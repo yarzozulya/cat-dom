@@ -35,6 +35,10 @@ export const ASSETS = {
   stol:     { file: 'stol.png',     w: 130, h: 82,  color: 0x6B4A2F, shape: 'round', label: 'Стол' },
   shkaf:    { file: 'shkaf.png',    w: 150, h: 130, color: 0x4A3B2A, shape: 'shkaf', label: 'Шкаф' },
 
+  // Аквариум. Стоит на ковре. Кот приземляется не на крышку, а прямо
+  // в воду — и именно отсюда по комнате разлетаются рыбки.
+  akvarium: { file: 'akvarium.png', w: 122, h: 78,  color: 0x2FA8C8, shape: 'akva',  label: 'Аквариум' },
+
   // ---- декор и опасности ----
   okno:     { file: 'okno.png',     w: 34,  h: 150, color: 0x3C6E8F, shape: 'rect',  label: 'Окно' },
   hozyain:  { file: 'hozyain.png',  w: 200, h: 48,  color: 0xD8A48F, shape: 'human', label: '' },

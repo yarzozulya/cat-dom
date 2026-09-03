@@ -21,7 +21,7 @@ import {
 } from '../config/level.js';
 import { buildLayout } from '../config/layout.js';
 import { BALANCE } from '../config/balance.js';
-import { preloadArt, makeTextures, labelFor, sizeOf } from '../core/greybox.js';
+import { preloadArt, makeTextures, labelFor, sizeOf, WATER_LINE } from '../core/greybox.js';
 import { load, save, addFish, markTaskDone } from '../core/save.js';
 
 // Формулы в облачке «кот считает». Ничего не значат, но выглядят серьёзно.
@@ -55,6 +55,7 @@ export default class LevelScene extends Phaser.Scene {
     this.catPose = 'cat';      // какая поза кота сейчас: cat или cat_hang
     this.bumped = false;       // чтобы реплика про стену не повторялась каждый кадр
     this.fedNow = false;
+    this.fishReleased = false; // рыбки появляются только после попадания в аквариум
   }
 
   preload() { preloadArt(this); }
@@ -119,6 +120,19 @@ export default class LevelScene extends Phaser.Scene {
         this.komodItem = item;
       }
 
+      // Аквариум помечаем стрелкой: игрок должен понять, что рыбки
+      // берутся отсюда, а не появляются сами.
+      if (item.isAquarium) {
+        const y = item.y - sizeOf(item.id).h / 2 - 14;
+        this.aquaHint = this.add.text(item.x, y, '▼', {
+          fontFamily: 'sans-serif', fontSize: '18px', color: '#7FD8E8'
+        }).setOrigin(0.5, 1).setDepth(6);
+        this.tweens.add({
+          targets: this.aquaHint, y: y - 6,
+          duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
+        });
+      }
+
       if (item.id === this.task.goal) {
         const y = item.y - sizeOf(item.id).h / 2 - 20;
         this.goalMarker = this.add.text(item.x, y, '▼', {
@@ -141,15 +155,16 @@ export default class LevelScene extends Phaser.Scene {
     });
 
     // ---------- заначки ----------
+    // Рыбки создаются заранее, но лежат невидимыми на своих местах.
+    // Пока кот не плюхнулся в аквариум, их нет в комнате и взять их нельзя.
     const saved = load();
     this.stashSprites = [];
     layout.stash.forEach((s, i) => {
       if (saved.stashTaken.includes(i)) return;
-      const sp = this.add.image(s.x, s.y, 'ryba').setDepth(4);
-      sp.setData('index', i).setData('fish', s.fish);
-      this.tweens.add({
-        targets: sp, y: s.y - 8, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
-      });
+      const sp = this.add.image(s.x, s.y, 'ryba').setDepth(4).setVisible(false);
+      sp.setData('index', i).setData('fish', s.fish)
+        .setData('tx', s.x).setData('ty', s.y)
+        .setData('live', false);        // true — когда рыбка долетела и её можно взять
       this.stashSprites.push(sp);
     });
 
@@ -185,7 +200,143 @@ export default class LevelScene extends Phaser.Scene {
     this.input.on('pointermove', p => this.onMove(p));
     this.input.on('pointerup',   p => this.onUp(p));
 
-    this.say('Тяни из любой точки и отпускай.');
+    this.say('Тяни из любой точки и отпускай. Рыбы — в аквариуме.');
+  }
+
+  // ============================================================
+  //  АКВАРИУМ
+  // ============================================================
+  //  Кот приземляется не на крышку, а прямо в воду. Всплеск, кот
+  //  сидит по уши мокрый — и из аквариума разлетаются рыбки, которые
+  //  дальше можно собирать по комнате. Повторные заходы дают только
+  //  брызги и реплику: рыбы там больше нет.
+  splashInto(item, body) {
+    this.state = 'scene';
+    this.standingOn = null;
+    this.standingBody = null;
+
+    const s = sizeOf(item.id);
+    const topY = body ? body.body.top : (item.y - s.h / 2);
+    const waterY = topY + s.h * WATER_LINE;
+
+    // Сажаем кота в воду: торчит только верхняя половина.
+    this.cat.body.reset(
+      Phaser.Math.Clamp(this.cat.x, item.x - s.w * 0.28, item.x + s.w * 0.28),
+      waterY + this.catSize().h * 0.18
+    );
+    this.cat.setDepth(1.5);              // за передним стеклом аквариума
+    this.splash(this.cat.x, waterY);
+
+    const first = !this.fishReleased;
+
+    if (first) {
+      this.fishReleased = true;
+      if (this.aquaHint) {
+        this.tweens.killTweensOf(this.aquaHint);
+        this.aquaHint.destroy();
+        this.aquaHint = null;
+      }
+      if (item.fish) {
+        this.runFish += item.fish;
+        addFish(item.fish);
+        this.updateHud();
+      }
+      this.say(pick(item.lines));
+      this.time.delayedCall(320, () => this.releaseFish(item.x, waterY));
+    } else {
+      this.say(pick(HAZARDS.akvarium.lines));
+    }
+
+    // Кот выбирается из воды сам, вторым всплеском.
+    this.time.delayedCall(first ? BALANCE.AQUA_OUT_MS : BALANCE.AQUA_OUT_MS_AGAIN, () => {
+      if (this.state !== 'scene') return;
+      this.cat.setDepth(5);
+      this.splash(this.cat.x, waterY);
+
+      // На секунду аквариум перестаёт ловить кота. Без этого он
+      // выпрыгивал и тут же плюхался обратно — и так до бесконечности.
+      if (body) {
+        this.dropThrough = { body, until: this.time.now + BALANCE.AQUA_IGNORE_MS };
+      }
+
+      // Прыжок в сторону центра комнаты, с запасом по горизонтали,
+      // чтобы приземлиться рядом с аквариумом, а не в него.
+      const away = this.cat.x < FIELD.w / 2 ? 1 : -1;
+      this.launch(away * BALANCE.AQUA_OUT_VX, -BALANCE.AQUA_OUT_VY, false);
+    });
+  }
+
+  // Брызги: горсть капель вверх и расходящееся кольцо по поверхности.
+  splash(x, y) {
+    for (let i = 0; i < BALANCE.SPLASH_DROPS; i++) {
+      const drop = this.add.circle(
+        x + Phaser.Math.Between(-26, 26), y,
+        Phaser.Math.Between(2, 5), 0x9FE4F2, 0.95
+      ).setDepth(8);
+      this.tweens.add({
+        targets: drop,
+        x: drop.x + Phaser.Math.Between(-80, 80),
+        y: y - Phaser.Math.Between(45, 125),
+        alpha: 0,
+        duration: Phaser.Math.Between(Math.round(BALANCE.SPLASH_MS * 0.6), BALANCE.SPLASH_MS),
+        ease: 'Quad.easeOut',
+        onComplete: () => drop.destroy()
+      });
+    }
+
+    const ring = this.add.ellipse(x, y, 26, 10)
+      .setFillStyle()
+      .setStrokeStyle(2, 0xCFF3FA, 0.9)
+      .setDepth(8);
+    this.tweens.add({
+      targets: ring, scaleX: 4.2, scaleY: 2.6, alpha: 0,
+      duration: BALANCE.SPLASH_MS, ease: 'Cubic.easeOut',
+      onComplete: () => ring.destroy()
+    });
+  }
+
+  // Рыбки вылетают из воды и разлетаются по своим местам в комнате.
+  releaseFish(fromX, fromY) {
+    if (!this.stashSprites.length) {
+      this.say('Пусто. Кто-то успел раньше.');
+      return;
+    }
+    this.say('Рыбы разлетелись. По всей комнате.');
+
+    this.stashSprites.forEach((sp, i) => {
+      const tx = sp.getData('tx'), ty = sp.getData('ty');
+      const delay = i * BALANCE.FISH_FLY_GAP;
+
+      sp.setPosition(fromX, fromY).setVisible(true).setScale(0.4).setAlpha(1);
+
+      // Полёт: по горизонтали ровно, по вертикали с перелётом —
+      // вместе это читается как дуга.
+      this.tweens.add({
+        targets: sp, x: tx, delay,
+        duration: BALANCE.FISH_FLY_MS, ease: 'Sine.easeOut'
+      });
+      this.tweens.add({
+        targets: sp, y: ty, delay,
+        duration: BALANCE.FISH_FLY_MS, ease: 'Back.easeOut'
+      });
+      this.tweens.add({
+        targets: sp, scaleX: 1, scaleY: 1, delay,
+        duration: 280, ease: 'Back.easeOut'
+      });
+      this.tweens.add({
+        targets: sp,
+        angle: { from: Phaser.Math.Between(-200, 200), to: 0 },
+        delay, duration: BALANCE.FISH_FLY_MS, ease: 'Quad.easeOut',
+        onComplete: () => {
+          if (!sp.active) return;
+          sp.setData('live', true);       // теперь рыбку можно подобрать
+          this.tweens.add({
+            targets: sp, y: ty - 8, duration: 900,
+            yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
+          });
+        }
+      });
+    });
   }
 
   // ============================================================
@@ -703,7 +854,7 @@ export default class LevelScene extends Phaser.Scene {
     if (this.state !== 'flying') return;
 
     this.stashSprites.forEach(sp => {
-      if (!sp.active) return;
+      if (!sp.active || !sp.getData('live')) return;   // ещё в аквариуме или в полёте
       if (Phaser.Math.Distance.Between(this.cat.x, this.cat.y, sp.x, sp.y) < 30) {
         const n = sp.getData('fish');
         this.runFish += n;
@@ -802,6 +953,12 @@ export default class LevelScene extends Phaser.Scene {
         );
         this.state = 'idle';
       });
+      return;
+    }
+
+    // --- аквариум: кот попадает не на крышку, а в воду ---
+    if (item.isAquarium) {
+      this.splashInto(item, body);
       return;
     }
 
